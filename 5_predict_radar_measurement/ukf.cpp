@@ -78,7 +78,7 @@ void UKF::PredictRadarMeasurement(VectorXd* z_out, MatrixXd* S_out) {
    */
 
   // transform sigma points into measurement space
-  size_t cols = Xsig_pred.cols();
+  size_t cols = Zsig.cols();
   for (size_t i = 0; i < cols; ++i) {
     double px = Xsig_pred(0,i);
     double py = Xsig_pred(1,i);
