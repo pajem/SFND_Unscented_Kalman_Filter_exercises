@@ -1,3 +1,4 @@
+#include <limits>
 #include <iostream>
 #include "ukf.h"
 
@@ -50,10 +51,39 @@ void UKF::SigmaPointPrediction(MatrixXd* Xsig_out) {
    */
 
   // predict sigma points
+  size_t n_sig = 2 * n_aug + 1;
+  for (size_t i = 0; i < n_sig; ++i) {
+    double px = Xsig_aug(0, i);
+    double py = Xsig_aug(1, i);
+    double v = Xsig_aug(2, i);
+    double yaw = Xsig_aug(3, i);
+    double yawd = Xsig_aug(4, i);
+    double noise_a = Xsig_aug(5, i);
+    double noise_yawdd = Xsig_aug(6, i);
 
-  // avoid division by zero
+    // avoid division by zero
+    bool divByZero = std::fabs(yawd) < std::numeric_limits<double>::epsilon();
+    double px_p = divByZero ? px + (v * delta_t * cos(yaw)) : px + (v / yawd * ( sin (yaw + yawd * delta_t) - sin(yaw)));
+    double py_p = divByZero ? py + (v * delta_t * sin(yaw)) : py + (v / yawd * ( cos(yaw) - cos(yaw + yawd * delta_t)));
+    double v_p = v + 0;
+    double yaw_p = yaw + yawd * delta_t;
+    double yawd_p = yawd + 0;
 
-  // write predicted sigma points into right column
+    // add noise
+    double delta_t2 =  std::pow(delta_t, 2);
+    px_p +=  0.5 * delta_t2 * cos(yaw) * noise_a;
+    py_p +=  0.5 * delta_t2 * sin(yaw) * noise_a;
+    v_p += delta_t * noise_a;
+    yaw_p += 0.5 * delta_t2 * noise_yawdd;
+    yawd_p += delta_t * noise_yawdd;
+
+    // write predicted sigma points into right column
+    Xsig_pred(0,i) = px_p;
+    Xsig_pred(1,i) = py_p;
+    Xsig_pred(2,i) = v_p;
+    Xsig_pred(3,i) = yaw_p;
+    Xsig_pred(4,i) = yawd_p;
+  }
 
   /**
    * Student part end
