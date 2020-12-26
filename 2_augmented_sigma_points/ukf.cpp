@@ -68,13 +68,35 @@ void UKF::AugmentedSigmaPoints(MatrixXd* Xsig_out) {
    */
  
   // create augmented mean state
+  x_aug.head(5) = x;
+  x_aug(5) = 0; // noise mean is 0
+  x_aug(6) = 0; // noise mean is 0
 
   // create augmented covariance matrix
+  P_aug.fill(0);
+  // top left is P
+  P_aug.topLeftCorner(n_x, n_x) = P;
+  // bottom right is Q
+  double var_a = std::pow(std_a, 2);
+  double var_yawdd = std::pow(std_yawdd, 2);
+  int n_q = n_aug - n_x;
+  MatrixXd Q = MatrixXd(n_q, n_q);
+  Q << var_a, 0, 0, var_yawdd;
+  P_aug.bottomRightCorner(n_q, n_q) = Q;
 
   // create square root matrix
+  MatrixXd A = P_aug.llt().matrixL();
 
   // create augmented sigma points
-  
+  Xsig_aug.col(0) = x_aug;
+  for (size_t i = 1; i<= n_aug; ++i) {
+      VectorXd offset = std::sqrt(lambda + n_aug) * A.col(i - 1);
+      // positive offset
+      Xsig_aug.col(i) = x_aug + offset;
+      // negative offset
+      Xsig_aug.col(i + n_aug) = x_aug - offset;
+  }
+
   /**
    * Student part end
    */
