@@ -100,16 +100,38 @@ void UKF::UpdateState(VectorXd* x_out, MatrixXd* P_out) {
 
   // create matrix for cross correlation Tc
   MatrixXd Tc = MatrixXd(n_x, n_z);
+  Tc.fill(0.0);
 
   /**
    * Student part begin
    */
 
+  auto normalizeAngle = [](double angle) {
+    while (angle > M_PI) angle -= 2 * M_PI;
+    while (angle <= -M_PI) angle += 2* M_PI;
+    return angle;
+  };
+
   // calculate cross correlation matrix
+  size_t cols = Zsig.cols();
+  for (size_t i = 0; i < cols; ++i) {
+    VectorXd z_delta = Zsig.col(i) - z_pred;
+    z_delta(1) = normalizeAngle(z_delta(1));
+
+    VectorXd x_delta = Xsig_pred.col(i) - x;
+    x_delta(3) = normalizeAngle(x_delta(3));
+
+    Tc += weights(i) * (x_delta * z_delta.transpose());
+  }
 
   // calculate Kalman gain K;
+  MatrixXd K = Tc * S.inverse();
 
   // update state mean and covariance matrix
+  VectorXd z_delta = z - z_pred;
+  z_delta(1) = normalizeAngle(z_delta(1));
+  x += K * z_delta;
+  P -= K * S * K.transpose();
 
   /**
    * Student part end
