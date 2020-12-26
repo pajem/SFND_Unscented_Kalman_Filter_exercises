@@ -58,6 +58,18 @@ void UKF::GenerateSigmaPoints(MatrixXd* Xsig_out) {
 
   // set sigma points as columns of matrix Xsig
 
+  // first column is simply the mean value
+  Xsig.col(0) = x;
+
+  // remaining columns are for the positive and negative offset from the mean value
+  for (size_t i = 1; i<= n_x; ++i) {
+      VectorXd offset = std::sqrt(lambda + n_x) * A.col(i - 1);
+      // positive offset
+      Xsig.col(i) = x + offset;
+      // negative offset
+      Xsig.col(i + n_x) = x - offset;
+  }
+
   /**
    * Student part end
    */
