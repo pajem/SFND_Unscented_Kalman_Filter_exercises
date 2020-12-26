@@ -67,19 +67,54 @@ void UKF::PredictRadarMeasurement(VectorXd* z_out, MatrixXd* S_out) {
 
   // mean predicted measurement
   VectorXd z_pred = VectorXd(n_z);
+  z_pred.fill(0.0);
   
   // measurement covariance matrix S
   MatrixXd S = MatrixXd(n_z,n_z);
+  S.fill(0.0);
 
   /**
    * Student part begin
    */
 
   // transform sigma points into measurement space
-  
+  size_t cols = Xsig_pred.cols();
+  for (size_t i = 0; i < cols; ++i) {
+    double px = Xsig_pred(0,i);
+    double py = Xsig_pred(1,i);
+    double v = Xsig_pred(2,i);
+    double yaw = Xsig_pred(3,i);
+
+    double vx = std::cos(yaw)*v;
+    double vy = std::sin(yaw)*v;
+
+    Zsig(0, i) = std::sqrt(px *px + py * py); // radial distance
+    Zsig(1, i) = std::atan2(py, px); // bearing
+    Zsig(2, i) = (px * vx + py * vy) / Zsig(0, i); // radial velocity
+  }
+
   // calculate mean predicted measurement
-  
+  for (size_t i = 0; i < cols; ++i) {
+    z_pred += weights(i) * Zsig.col(i);
+  }
+
   // calculate innovation covariance matrix S
+  for (size_t i = 0; i < cols; ++i) {
+    VectorXd z_delta = Zsig.col(i) - z_pred;
+    while (z_delta(1)> M_PI) z_delta(1) -= 2 * M_PI; // normalize
+    while (z_delta(1)<-M_PI) z_delta(1) += 2 * M_PI; // normalize
+
+    S += weights(i) * (z_delta * z_delta.transpose());
+  }
+  // add noise R to S
+  MatrixXd R(n_z, n_z);
+  double var_radr = std_radr * std_radr;
+  double var_radphi = std_radphi * std_radphi;
+  double var_radrd = std_radrd * std_radrd;
+  R <<  var_radr,          0,         0,
+               0, var_radphi,         0,
+               0,          0, var_radrd;
+  S += R;
 
   /**
    * Student part end
